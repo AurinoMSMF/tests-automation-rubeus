@@ -1,5 +1,9 @@
 {
   "dependencies": {
     "cypress": "^15.11.0"
+  },
+  "scripts": {
+    "nwl-form:test:headless": "npx cypress run",
+    "nwl-form:test:open": "npx cypress open --browser electron"
   }
 }
