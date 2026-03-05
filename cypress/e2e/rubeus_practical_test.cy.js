@@ -1,73 +1,47 @@
+import Site from "../pages/site/index";
+
+const newsletter_section = "#inyqq";
+
 // Exceção não tratada impedia fluxo padrão de testes do cypress
 Cypress.on("uncaught:exception", (err, runnable) => {
   return false;
 });
 
-const newsletter_section = "#inyqq";
-const newsletter_form = ".rbFormBox .rbFormContainer .rbFormEtapa";
-
-const selectors = {
-  name_input: `${newsletter_form} .rbFormContent .rbPadding10 .rb-content-form input[name="pessoa.nome"]`,
-  email_input: `${newsletter_form} .rbFormContent .rbPadding10 .rb-content-form input[name="pessoa.emailPrincipal"]`,
-  phone_input: `${newsletter_form} .rbFormContent .rbPadding10 .rb-content-form .iti input[name="pessoa.telefonePrincipal"]`,
-  submit_button: `${newsletter_form} .rbActionsFormContainer button#rbBtnNext.rbBtnNext`,
-};
-
-const success_status_codes = [200, 201];
+const expected_success_status_codes = [200, 201];
 
 describe("Teste do formulário de newsletter", () => {
+  beforeEach(() => {
+    // Arrange
+    Site.visitPage();
+  });
+
   context("Quando todos os dados estão preenchidos", () => {
     context("E todos os dados são válidos", () => {
       it("Deve realizar assinatura da newsletter com sucesso", () => {
-        // Arrange
-        cy.visit("/site");
-
         // Act
-        cy.get(selectors.name_input).type("Joe Doe");
-        cy.get(selectors.email_input).type("valid@email.com");
-        cy.get(selectors.phone_input).type("82922223333");
+        Site.fillAllNewsletterFormFields();
 
-        cy.intercept("PATCH", "/api/v2/sendData").as("newsletterSubscription");
+        Site.submitNewsletterForm();
 
-        cy.get(selectors.submit_button).click();
-
-        cy.wait("@newsletterSubscription").then((interception) => {
-          if (
-            !success_status_codes.includes(interception.response.statusCode)
-          ) {
-            cy.screenshot("fully-filled-newsletter-form-fail").then(() => {
-              throw new Error(
-                `Falha na assinatura da newsletter: status ${interception.response.statusCode} - ${interception.response.statusMessage}`,
-              );
-            });
-          }
-        });
+        Site.verifyNewsletterFormSubmissionRequest(
+          "fully-filled-newsletter-form-fail",
+        );
 
         // Assert
-        cy.get(selectors.name_input).should("have.value", "");
-        cy.get(selectors.email_input).should("have.value", "");
-        cy.get(selectors.phone_input).should("have.value", "");
-        cy.get(selectors.submit_button).should("be.disabled");
+        Site.verifyNewsletterFormIsCleared();
 
         cy.screenshot("fully-filled-newsletter-form-success");
       });
     });
 
     context("E o campo Email é inválido", () => {
-      it("Deve manter o botão de submissão desabilitado e nenhuma requisição deve ser feita", () => {
-        // Arrange
-        cy.visit("/site");
-
+      it("Deve impedir a submissão do formulário mantendo o botão desabilitado e um aviso deve surgir para alertar sobre o campo", () => {
         // Act
-        cy.get(selectors.name_input).type("Joe Doe");
-        cy.get(selectors.email_input).type("invalid@email.com2");
-        cy.get(selectors.phone_input).type("82922223333");
-
-        cy.intercept("PATCH", "/api/v2/sendData").as("newsletterSubscription");
+        Site.fillAllNewsletterFormFields({ valid_email: false });
 
         // Assert
-        cy.get(selectors.submit_button).should("be.disabled");
-        cy.get("@newsletterSubscription.all").should("have.length", 0);
+        Site.verifyButtonDisability();
+        Site.verifyInvalidEmailAlert();
 
         cy.get(newsletter_section).screenshot(
           "fully-filled-invalid-email-newsletter-form-disabled-button",
@@ -77,22 +51,13 @@ describe("Teste do formulário de newsletter", () => {
 
     context("E o campo Telefone é inválido", () => {
       context("Porque tem mais digitos do que permitido", () => {
-        it("Deve manter botão de submissão desabilitado e nenhuma requisição deve ser feita", () => {
-          // Arrange
-          cy.visit("/site");
-
+        it("Deve impedir a submissão do formulário mantendo o botão desabilitado e um aviso deve surgir para alertar sobre o campo", () => {
           // Act
-          cy.get(selectors.name_input).type("Joe Doe");
-          cy.get(selectors.email_input).type("invalid@email.com2");
-          cy.get(selectors.phone_input).type("829111133334");
-
-          cy.intercept("PATCH", "/api/v2/sendData").as(
-            "newsletterSubscription",
-          );
+          Site.fillAllNewsletterFormFields({ phone_number_type: "shorter" });
 
           // Assert
-          cy.get(selectors.submit_button).should("be.disabled");
-          cy.get("@newsletterSubscription.all").should("have.length", 0);
+          Site.verifyButtonDisability();
+          Site.verifyInvalidPhoneNumberAlert();
 
           cy.get(newsletter_section).screenshot(
             "required-invalid-email-newsletter-form-disabled-button",
@@ -101,22 +66,13 @@ describe("Teste do formulário de newsletter", () => {
       });
 
       context("Porque tem menos digitos do que permitido", () => {
-        it("Deve manter botão de submissão desabilitado e nenhuma requisição deve ser feita", () => {
-          // Arrange
-          cy.visit("/site");
-
+        it("Deve impedir a submissão do formulário mantendo o botão desabilitado e um aviso deve surgir para alertar sobre o campo", () => {
           // Act
-          cy.get(selectors.name_input).type("Joe Doe");
-          cy.get(selectors.email_input).type("invalid@email.com2");
-          cy.get(selectors.phone_input).type("8291111332");
-
-          cy.intercept("PATCH", "/api/v2/sendData").as(
-            "newsletterSubscription",
-          );
+          Site.fillAllNewsletterFormFields({ phone_number_type: "longer" });
 
           // Assert
-          cy.get(selectors.submit_button).should("be.disabled");
-          cy.get("@newsletterSubscription.all").should("have.length", 0);
+          Site.verifyButtonDisability();
+          Site.verifyInvalidPhoneNumberAlert();
 
           cy.get(newsletter_section).screenshot(
             "required-invalid-email-newsletter-form-disabled-button",
@@ -129,55 +85,30 @@ describe("Teste do formulário de newsletter", () => {
   context("Quando somente os dados obrigatórios estão preenchidos", () => {
     context("E todos os dados são válidos", () => {
       it("Deve realizar assinatura da newsletter com sucesso", () => {
-        // Arrange
-        cy.visit("/site");
-
         // Act
-        cy.get(selectors.name_input).type("Joe Doe");
-        cy.get(selectors.email_input).type("valid@email.com");
+        Site.fillRequiredFormFields();
 
-        cy.intercept("PATCH", "/api/v2/sendData").as("newsletterSubscription");
+        Site.submitNewsletterForm();
 
-        cy.get(selectors.submit_button).click();
-
-        cy.wait("@newsletterSubscription").then((interception) => {
-          if (
-            !success_status_codes.includes(interception.response.statusCode)
-          ) {
-            cy.screenshot("required-fields-filled-newsletter-form-fail").then(
-              () => {
-                throw new Error(
-                  `Falha na assinatura da newsletter: status ${interception.response.statusCode} - ${interception.response.statusMessage}`,
-                );
-              },
-            );
-          }
-        });
+        Site.verifyNewsletterFormSubmissionRequest(
+          "required-fields-filled-newsletter-form-fail",
+        );
 
         // Assert
-        cy.get(selectors.name_input).should("have.value", "");
-        cy.get(selectors.email_input).should("have.value", "");
-        cy.get(selectors.phone_input).should("have.value", "");
-        cy.get(selectors.submit_button).should("be.disabled");
+        Site.verifyNewsletterFormIsCleared();
 
         cy.screenshot("required-fields-filled-newsletter-form-success");
       });
     });
 
     context("E o campo Email é inválido", () => {
-      it("Deve manter o botão de submissão desabilitado e nenhuma requisição deve ser feita", () => {
-        // Arrange
-        cy.visit("/site");
-
+      it("Deve impedir a submissão do formulário mantendo o botão desabilitado e um aviso deve surgir para alertar sobre o campo", () => {
         // Act
-        cy.get(selectors.name_input).type("Joe Doe");
-        cy.get(selectors.email_input).type("invalid@email.com2");
-
-        cy.intercept("PATCH", "/api/v2/sendData").as("newsletterSubscription");
+        Site.fillRequiredFormFields({ valid_email: false });
 
         // Assert
-        cy.get(selectors.submit_button).should("be.disabled");
-        cy.get("@newsletterSubscription.all").should("have.length", 0);
+        Site.verifyButtonDisability();
+        Site.verifyInvalidEmailAlert();
 
         cy.get(newsletter_section).screenshot(
           "required-invalid-email-newsletter-form-disabled-button",
@@ -188,15 +119,9 @@ describe("Teste do formulário de newsletter", () => {
 
   context("Quando todos os campos do formulário estão vazios", () => {
     it("Deve ter o botão de submissão desabilitado e nenhuma requisição deve ser feita", () => {
-      // Arrange
-      cy.visit("/site");
-
       // Act
-      cy.intercept("PATCH", "/api/v2/sendData").as("newsletterSubscription");
-
       // Assert
-      cy.get(selectors.submit_button).should("be.disabled");
-      cy.get("@newsletterSubscription.all").should("have.length", 0);
+      Site.verifyButtonDisability();
 
       cy.get(newsletter_section).screenshot(
         "empty-newsletter-form-disabled-button",
@@ -205,18 +130,12 @@ describe("Teste do formulário de newsletter", () => {
   });
 
   context("Quando somente o campo de Nome está preenchido", () => {
-    it("Deve ter o botão de submissão desabilitado e nenhuma requisição deve ser feita", () => {
-      // Arrange
-      cy.visit("/site");
-
+    it("Deve impedir a submissão do formulário mantendo o botão desabilitado", () => {
       // Act
-      cy.get(selectors.name_input).type("Joe Doe");
-
-      cy.intercept("PATCH", "/api/v2/sendData").as("newsletterSubscription");
+      Site.fillNameField();
 
       // Assert
-      cy.get(selectors.submit_button).should("be.disabled");
-      cy.get("@newsletterSubscription.all").should("have.length", 0);
+      Site.verifyButtonDisability();
 
       cy.get(newsletter_section).screenshot(
         "name-filled-newsletter-form-disabled-button",
@@ -224,23 +143,32 @@ describe("Teste do formulário de newsletter", () => {
     });
   });
 
-  context("Quando somente o campo de Email está preenchido e é válido", () => {
-    it("Deve ter o botão de submissão desabilitado e nenhuma requisição deve ser feita", () => {
-      // Arrange
-      cy.visit("/site");
+  context("Quando somente o campo de Email está preenchido", () => {
+    context("E o Email é válido", () => {
+      it("Deve impedir a submissão do formulário mantendo o botão desabilitado", () => {
+        // Act
+        Site.fillValidEmail();
 
-      // Act
-      cy.get(selectors.email_input).type("valid@email.com");
+        // Assert
+        Site.verifyButtonDisability();
 
-      cy.intercept("PATCH", "/api/v2/sendData").as("newsletterSubscription");
+        cy.get(newsletter_section).screenshot(
+          "valid-email-filled-newsletter-form-disabled-button",
+        );
+      });
+    });
+    context("E o Email é inválido", () => {
+      it("Deve impedir a submissão do formulário mantendo o botão desabilitado e um aviso deve surgir para alertar sobre o campo", () => {
+        // Act
+        Site.fillInvalidEmail();
 
-      // Assert
-      cy.get(selectors.submit_button).should("be.disabled");
-      cy.get("@newsletterSubscription.all").should("have.length", 0);
+        // Assert
+        Site.verifyButtonDisability();
 
-      cy.get(newsletter_section).screenshot(
-        "valid-email-filled-newsletter-form-disabled-button",
-      );
+        cy.get(newsletter_section).screenshot(
+          "invalid-email-filled-newsletter-form-disabled-button",
+        );
+      });
     });
   });
 });
