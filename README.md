@@ -124,21 +124,21 @@ Prioridade: Média
 Descrição: Os botões parecem visivelmente funcionais, mas não são clicáveis e nem executam qualquer ação.
 Página(s) relacionada(s): Certificação
 
-Item 17 - Botões de ação dos cards da seção "Outros cursos" não possuem padrão e aprensentam erros de escrita
+Item 18 - Botões de ação dos cards da seção "Outros cursos" não possuem padrão e aprensentam erros de escrita
 Tipo: Correção
 Classificação: Usabilidade
 Prioridade: Baixa
 Descrição: Os três possuem títulos distintos entre si "Saiba", "Saiba mais" e "Salba mais".
 Página(s) relacionada(s): Certificação
 
-Item 17 - É permitida a tentativa de submissão do formulário com e-mail inválido
+Item 19 - É permitida a tentativa de submissão do formulário com e-mail inválido
 Tipo: Correção
 Classificação: Usabilidade
 Prioridade: Média
 Descrição: Ao preencher somente o e-mail, em alguns casos é possivel enviar tentativa de submissão do formulário ao clicar no botão.
 Página(s) relacionada(s): Certificação
 
-Item 18 - Formulário de Inscrição não aceita submissão
+Item 20 - Formulário de Inscrição não aceita submissão
 Tipo: Correção
 Classificação: Utilidade
 Prioridade: Alta
