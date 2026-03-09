@@ -7,8 +7,6 @@ Cypress.on("uncaught:exception", (err, runnable) => {
   return false;
 });
 
-const expected_success_status_codes = [200, 201];
-
 describe("Teste do formulário de newsletter", () => {
   beforeEach(() => {
     // Arrange
